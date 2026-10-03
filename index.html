@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Money Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Money">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1a73e8">
+<style>
+:root{
+  --bg:#fff; --text:#111; --card:#f5f7fb; --border:#ddd; --border2:#eee;
+  --accent:#1a73e8; --accent-bg:#eef3fd; --accent-border:#cfe0fb;
+  --tab-bg:#eee;
+}
+[data-theme="dark"]{
+  --bg:#121212; --text:#e8e8e8; --card:#1e1e1e; --border:#333; --border2:#2a2a2a;
+  --accent:#5b9bf5; --accent-bg:#1c2b40; --accent-border:#2c4568;
+  --tab-bg:#1e1e1e;
+}
+body{font-family:sans-serif;padding:14px 14px 80px;max-width:420px;margin:auto;background:var(--bg);color:var(--text)}
+label{display:block;margin-top:12px;font-weight:bold;font-size:14px}
+input,select,textarea{width:100%;padding:10px;font-size:16px;box-sizing:border-box;margin-top:4px;background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px}
+button{width:100%;padding:14px;margin-top:18px;font-size:18px;background:var(--accent);color:#fff;border:0;border-radius:8px}
+#msg{margin-top:12px;font-weight:bold;color:green}
+#editBanner{display:none;background:#fff3cd;color:#856404;padding:8px;border-radius:6px;margin-top:10px;font-size:13px}
+#cancelEdit{background:#999;margin-top:6px}
+.quickRow{display:flex;gap:6px;margin-top:8px}
+.quickbtn{flex:1;padding:8px 0;margin:0;font-size:14px;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border);border-radius:6px}
+.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--bg);border-top:1px solid var(--border);padding:8px 14px;max-width:420px;margin:auto;box-shadow:0 -2px 6px rgba(0,0,0,0.08)}
+.tabbtn{flex:1;padding:10px;text-align:center;background:var(--tab-bg);color:var(--text);border-radius:8px;cursor:pointer;font-weight:bold;margin:0 4px;font-size:13px}
+.tabbtn.active{background:var(--accent);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+td,th{border-bottom:1px solid var(--border2);padding:6px 4px;text-align:left;color:var(--text)}
+tr.histRow{cursor:pointer}
+tr.histRow:active{background:var(--card)}
+.exp{color:#c0392b}.trf{color:#2980b9}.inc{color:#27ae60}
+[data-theme="dark"] .exp{color:#ef9a9a}
+[data-theme="dark"] .trf{color:#90caf9}
+[data-theme="dark"] .inc{color:#a5d6a7}
+.delbtn,.editbtn,.apRow .del{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 7px;font-size:16px;line-height:1;width:auto;margin:0 3px 0 0;cursor:pointer}
+.apDue{color:#e74c3c;font-weight:bold}
+.balCard{display:flex;justify-content:space-between;background:var(--card);padding:10px 14px;border-radius:8px;margin-top:8px;font-size:15px}
+.balCard b{color:var(--accent)}
+.negBal{color:#e57373}
+.sumBox{display:flex;justify-content:space-between;margin-top:14px;gap:8px}
+.sumItem{flex:1;background:var(--card);padding:10px;border-radius:8px;text-align:center}
+.sumItem .lbl{font-size:12px;color:#888}
+.sumItem .val{font-size:16px;font-weight:bold;margin-top:2px}
+.filterRow{display:flex;gap:8px;margin-top:8px}
+.filterRow select,.filterRow input{margin-top:0}
+.smallbtn{width:auto;padding:10px 14px;margin:8px 0 0;font-size:14px}
+.budRow{display:flex;justify-content:space-between;align-items:center;background:var(--card);padding:8px 12px;border-radius:8px;margin-top:6px;font-size:13px}
+.budBar{height:6px;background:var(--border);border-radius:4px;margin-top:4px;overflow:hidden}
+.budFill{height:100%;background:#27ae60}
+.budOver .budFill{background:#e74c3c}
+.budOver{color:#e57373;font-weight:bold}
+.addBudget{display:flex;gap:6px;margin-top:10px}
+.addBudget select,.addBudget input{margin-top:0}
+.addBudget button{width:auto;padding:10px 14px;margin:0;font-size:13px}
+.checkCard{padding:10px 14px;border-radius:8px;margin-top:8px;font-size:13px}
+.checkOk{background:#e8f8ee;color:#1e7e42}
+.checkWarn{background:#fff3cd;color:#8a6500;font-weight:bold}
+.checkBad{background:#fdecea;color:#c0392b;font-weight:bold}
+[data-theme="dark"] .checkOk{background:#1e3a2a;color:#8fd9a8}
+[data-theme="dark"] .checkWarn{background:#3a3320;color:#f0d878}
+[data-theme="dark"] .checkBad{background:#3a1f1f;color:#f28b82}
+#hdfcNote{display:none;margin-top:8px}
+.accSection{border:1px solid var(--border2);border-radius:8px;margin-top:10px;padding:0 12px;background:var(--bg)}
+.accSection summary{padding:12px 0;font-weight:bold;cursor:pointer;list-style:none;display:flex;align-items:center;font-size:15px;color:var(--text)}
+.accSection summary .accTitle{flex:1}
+.accSection summary .accTotal{font-weight:normal;font-size:13px;color:var(--accent);margin-right:8px}
+.accSection summary::-webkit-details-marker{display:none}
+.accSection summary::after{content:'▸';transition:transform .2s;color:var(--accent);font-size:14px}
+.accSection[open] summary::after{transform:rotate(90deg)}
+.accSection > *:not(summary){margin-bottom:0}
+.accSection-body{padding-bottom:14px}
+.apRow{display:flex;justify-content:space-between;align-items:center;background:var(--card);padding:8px 12px;border-radius:8px;margin-top:6px;font-size:13px}
+.apRow.apPaid{background:#1e3a2a;color:#8fd9a8}
+.apRow.apUnpaid{background:#3a1f1f;color:#f28b82}
+body:not([data-theme="dark"]) .apRow.apPaid{background:#e8f8ee;color:#1e7e42}
+body:not([data-theme="dark"]) .apRow.apUnpaid{background:#fdecea;color:#c0392b}
+.addAp{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.addAp select,.addAp input{margin-top:0;flex:1;min-width:70px}
+.addAp button{width:100%;padding:10px 14px;margin-top:6px;font-size:13px}
+.obRow{display:flex;gap:6px;margin-top:10px}
+.obRow select,.obRow input{margin-top:0}
+.obRow button{width:auto;padding:10px 14px;margin:0;font-size:13px}
+h3{text-align:center;margin-top:0}
+.fieldRow{display:flex;gap:10px}
+.fieldRow>div{flex:1;min-width:0}
+.topBar{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:14px}
+#pendingBadge{display:none;margin-right:auto;font-size:12px;color:#c0392b;cursor:pointer;font-weight:bold;background:var(--card);padding:8px 12px;border-radius:8px;border:1px solid var(--border)}
+.themeToggle{width:auto;margin:0;padding:8px 12px;font-size:13px;background:var(--card);color:var(--text);border:1px solid var(--border)}
+
+body{padding-top:max(14px,env(safe-area-inset-top));padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+.tabs{padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+#setup{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:100;display:none;padding:40px 20px;overflow:auto}
+#setup .box{max-width:420px;margin:auto}
+.dRow{display:flex;justify-content:space-between;gap:12px;background:var(--card);padding:12px 14px;border-radius:8px;margin-top:8px;font-size:15px}
+.dRow span:first-child{font-weight:bold;color:var(--accent)}
+.dRow span:last-child{text-align:right;word-break:break-word}
+.dBtns{display:flex;gap:8px;margin-top:18px}
+.dBtns button{flex:1;margin:0;padding:14px;font-size:22px;color:#fff;border:0;border-radius:8px}
+.dEdit{background:#27ae60}.dDel{background:#e74c3c}.dClose{background:#999;font-size:16px!important}
+</style></head><body>
+<div id="setup"><div class="box">
+<h3>Setup</h3>
+<p style="font-size:13px;text-align:center">Enter these once on this device.</p>
+<label>WEB APP URL</label>
+<input id="setupUrl" placeholder="https://script.google.com/macros/s/.../exec" autocapitalize="off" autocorrect="off">
+<label>SECRET KEY</label>
+<input id="setupKey" type="password" autocapitalize="off" autocorrect="off">
+<button onclick="saveSetup()">SAVE &amp; OPEN</button>
+<div id="setupMsg" style="color:#c0392b;margin-top:10px;font-weight:bold"></div>
+</div></div>
+<div class="topBar">
+<div id="pendingBadge" onclick="syncPending()">⏳ 0 waiting — tap to sync</div>
+<span title="Reload app" style="font-size:22px;line-height:1;cursor:pointer;color:var(--accent)" onclick="reloadApp()">↻</span>
+<button class="themeToggle" onclick="toggleTheme()" id="themeBtn" title="Toggle theme" style="font-size:15px;padding:6px 10px;background:none;border:0;color:var(--text)">●</button>
+</div>
+
+<div id="entryTab">
+<div style="position:relative">
+<h3 style="margin:0 0 4px">MONEY TRACKER</h3>
+
+</div>
+<div class="sumBox" id="entryBalances"></div>
+<div id="editBanner">Editing SR <span id="editSr"></span>. Update or cancel below.</div>
+<div class="fieldRow">
+  <div>
+    <label>TYPE</label>
+    <select id="type" onchange="toggleType(); checkHDFCLive()">
+      <option>EXPENSE</option><option>INCOME</option><option>TRANSFER</option>
+    </select>
+  </div>
+  <div>
+    <label>DATE</label>
+    <input type="date" id="date" onchange="checkHDFCLive()">
+  </div>
+</div>
+
+<div class="fieldRow">
+  <div style="flex:2">
+    <label>AMOUNT</label>
+    <input type="number" id="amount" inputmode="decimal">
+  </div>
+  <div style="flex:1">
+    <label>QUICK</label>
+    <select id="quickAmtSel" onchange="applyQuickAmt()">
+      <option value="">--</option>
+      <option value="50">₹50</option>
+      <option value="100">₹100</option>
+      <option value="500">₹500</option>
+      <option value="1000">₹1000</option>
+    </select>
+  </div>
+</div>
+
+<div class="fieldRow" id="accountForRow">
+  <div>
+    <label id="accountLabel">FROM</label>
+    <select id="account" onchange="checkHDFCLive()"></select>
+  </div>
+  <div>
+    <label id="forLabel">FOR</label>
+    <select id="for"></select>
+  </div>
+</div>
+
+<div class="fieldRow" id="transferRow" style="display:none">
+  <div>
+    <label>FROM</label>
+    <select id="from" onchange="checkHDFCLive()"></select>
+  </div>
+  <div>
+    <label>TO</label>
+    <select id="to" onchange="checkHDFCLive()"></select>
+  </div>
+</div>
+
+<div id="hdfcNote" class="checkCard"></div>
+
+<label>NOTES</label><input id="notes">
+<button id="btn" onclick="save()">SUBMIT</button>
+<button id="cancelEdit" style="display:none" onclick="cancelEdit()">Cancel edit</button>
+<div id="msg"></div>
+</div>
+
+<div id="historyTab" style="display:none">
+<div style="position:relative">
+<h3 style="margin:0">History</h3>
+<button class="smallbtn" style="width:auto;margin:0;position:absolute;right:0;top:50%;transform:translateY(-50%)" onclick="exportCSV()">Export CSV</button>
+</div>
+<div class="fieldRow">
+  <div style="flex:1">
+    <label>VIEW BY</label>
+    <select id="viewMode" onchange="onViewModeChange()">
+      <option value="month">Month</option>
+      <option value="date">Date</option>
+      <option value="year">Year</option>
+    </select>
+  </div>
+  <div style="flex:1.3">
+    <label id="viewValueLabel">MONTH</label>
+    <input type="month" id="histMonth" onchange="loadHistory()">
+    <input type="date" id="dateFilter" style="display:none" onchange="loadHistory()">
+    <select id="histYear" style="display:none" onchange="loadHistory()"></select>
+  </div>
+</div>
+
+<div class="fieldRow">
+  <div style="flex:1">
+    <label>SEARCH IN</label>
+    <select id="searchField" onchange="onSearchFieldChange()">
+      <option value="">None</option>
+      <option value="account">Account</option>
+      <option value="for">For</option>
+      <option value="notes">Notes</option>
+    </select>
+  </div>
+  <div style="flex:1.3">
+    <label>SEARCH</label>
+    <input id="searchBox" placeholder="Pick a field first" disabled oninput="renderHistory()">
+    <select id="searchAccountSel" style="display:none" onchange="renderHistory()"></select>
+  </div>
+</div>
+
+<div style="margin-top:8px">
+  <select id="typeFilter" onchange="renderHistory()">
+    <option value="">All types</option>
+    <option value="EXPENSE">Expense</option>
+    <option value="INCOME">Income</option>
+    <option value="TRANSFER">Transfer</option>
+  </select>
+</div>
+<div class="sumBox" id="histTotals"></div>
+<div id="histBox">Loading...</div>
+</div>
+
+<div id="detailTab" style="display:none">
+<h3>Entry <span id="dSr"></span></h3>
+<div id="dView"></div>
+<div class="dBtns">
+<button class="dEdit" title="Edit" onclick="detailEdit()">✏️</button>
+<button class="dDel" id="dDelBtn" title="Delete" onclick="detailDelete()">🗑️</button>
+<button class="dClose" onclick="detailClose()">Close</button>
+</div>
+</div>
+
+<div id="summaryTab" style="display:none">
+<h3>Summary</h3>
+
+<details class="accSection">
+<summary><span class="accTitle">Month &amp; Balances</span><span class="accTotal" id="sumMonthTotal"></span></summary>
+<div class="accSection-body">
+<label>MONTH</label>
+<input type="month" id="monthPick" onchange="loadSummary()">
+<div id="balBox"></div>
+<div class="sumBox" id="sumBox"></div>
+<div id="checkBox" style="margin-top:12px">Loading...</div>
+</div>
+</details>
+
+<details class="accSection">
+<summary><span class="accTitle">Category &amp; Budgets</span><span class="accTotal" id="sumBudgetTotal"></span></summary>
+<div class="accSection-body">
+<div class="sumItem" id="totalBudgetBox" style="margin-bottom:10px"></div>
+<div class="addBudget">
+  <select id="budCat"></select>
+  <input id="budLimit" type="number" placeholder="Limit ₹">
+  <button onclick="setBudget()">Set</button>
+</div>
+<div id="catBox" style="margin-top:12px">Loading...</div>
+</div>
+</details>
+
+<details class="accSection">
+<summary><span class="accTitle">Opening Balance</span><span class="accTotal" id="sumOpeningTotal"></span></summary>
+<div class="accSection-body" id="obList"></div>
+</details>
+
+<details class="accSection">
+<summary><span class="accTitle">Auto-Pay Schedule</span><span class="accTotal" id="sumAutopayTotal"></span></summary>
+<div class="accSection-body">
+<div class="addAp">
+  <select id="apAccount"></select>
+  <input id="apLabel" placeholder="Label (e.g. SIP)">
+  <input id="apDate" type="date" placeholder="Due date">
+  <input id="apAmount" type="number" placeholder="Amount ₹">
+</div>
+<button class="smallbtn" style="width:100%" onclick="addAutopay()">Add Auto-Pay</button>
+<button class="smallbtn" style="width:100%;background:#999" onclick="cancelAutopayEdit()">Cancel Edit</button>
+<div id="apList" style="margin-top:12px"></div>
+</div>
+</details>
+
+<details class="accSection">
+<summary>Manage Accounts (FROM/TO)</summary>
+<div class="accSection-body">
+<div id="acctList"></div>
+<div class="addAp">
+  <input id="newAcct" placeholder="New account name (e.g. Home Saving)">
+  <button class="smallbtn" style="width:auto" onclick="addAcctUI()">Add</button>
+</div>
+</div>
+</details>
+
+<details class="accSection">
+<summary>Manage Categories (FOR)</summary>
+<div class="accSection-body">
+<div id="catMgmtList"></div>
+<div class="addAp">
+  <input id="newCat" placeholder="New category name">
+  <button class="smallbtn" style="width:auto" onclick="addCatUI()">Add</button>
+</div>
+</div>
+</details>
+
+</div>
+
+<div class="tabs">
+  <div class="tabbtn active" id="tabEntryBtn" onclick="showTab('entry')">Entry</div>
+  <div class="tabbtn" id="tabHistoryBtn" onclick="showTab('history')">History</div>
+  <div class="tabbtn" id="tabSummaryBtn" onclick="showTab('summary')">Summary</div>
+</div>
+
+<script>
+// ---------- connection to Apps Script (replaces google.script.run) ----------
+const CFG={url:localStorage.getItem('mt_url')||'', key:localStorage.getItem('mt_key')||''};
+function showSetup(msg){
+  document.getElementById('setupUrl').value=CFG.url;
+  document.getElementById('setupMsg').innerText=msg||'';
+  document.getElementById('setup').style.display='block';
+}
+function saveSetup(){
+  const u=document.getElementById('setupUrl').value.trim();
+  const k=document.getElementById('setupKey').value.trim();
+  const m=document.getElementById('setupMsg');
+  if(!/^https:\/\/script\.google\.com\/.*\/exec/.test(u)){ m.innerText='Enter the full web app URL ending in /exec'; return; }
+  if(!k){ m.innerText='Enter the secret key'; return; }
+  localStorage.setItem('mt_url',u); localStorage.setItem('mt_key',k);
+  location.reload();
+}
+async function callApi(fn,args){
+  if(!CFG.url||!CFG.key){ showSetup(); throw new Error('not configured'); }
+  const res=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:CFG.key,fn:fn,args:args})});
+  let data;
+  try{ data=await res.json(); }
+  catch(e){ showSetup('Cannot read the server reply. Check the URL and that access is set to Anyone.'); throw e; }
+  if(!data.ok){
+    if(data.error==='unauthorized') showSetup('Wrong secret key. Enter it again.');
+    throw new Error(data.error);
+  }
+  return data.result;
+}
+function makeRunner(ok,fail){
+  return new Proxy({},{get:function(_,name){
+    if(name==='withSuccessHandler') return f=>makeRunner(f,fail);
+    if(name==='withFailureHandler') return f=>makeRunner(ok,f);
+    return (...args)=>{
+      callApi(name,args).then(
+        r=>{ if(ok) ok(r); },
+        e=>{ if(fail) fail(e); else console.error(name,e); }
+      );
+    };
+  }});
+}
+const google={script:{
+  run:makeRunner(null,null),
+  url:{getLocation:cb=>{ cb({parameter:Object.fromEntries(new URLSearchParams(location.search))}); }}
+}};
+if(!CFG.url||!CFG.key) showSetup();
+
+// ---------- app ----------
+let editingRow=null;
+let currentRows=[];
+
+async function reloadApp(){
+  if(!navigator.onLine){ alert('No internet. Connect and try again.'); return; }
+  try{ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); }catch(e){}
+  location.reload();
+}
+
+// ---------- entry details (opens inside the app) ----------
+let detailRow=null;
+function escH(x){ return String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function dLine(k,v,raw){ return '<div class="dRow"><span>'+k+'</span><span>'+(raw?v:escH(v||'-'))+'</span></div>'; }
+function openEntry(sr){
+  const r=currentRows.find(x=>String(x.sr)===String(sr));
+  if(!r) return;
+  detailRow=r;
+  document.getElementById('dSr').innerText=r.sr;
+  const cls=r.type==='TRANSFER'?'trf':(r.type==='INCOME'?'inc':'exp');
+  const f=String(r.for||'');
+  let h=dLine('Type','<b class="'+cls+'">'+escH(r.type)+'</b>',true)+dLine('Date',r.date)+dLine('Amount','₹'+r.amount);
+  if(r.type==='TRANSFER') h+=dLine('From',r.from)+dLine('To',f.startsWith('TO: ')?f.slice(4):f);
+  else if(r.type==='INCOME') h+=dLine('Received in',r.from)+dLine('Source',f.startsWith('SOURCE: ')?f.slice(8):f);
+  else h+=dLine('Account',r.from)+dLine('For',f);
+  h+=dLine('Notes',r.notes);
+  document.getElementById('dView').innerHTML=h;
+  ['entryTab','historyTab','summaryTab'].forEach(id=>document.getElementById(id).style.display='none');
+  document.getElementById('detailTab').style.display='block';
+  window.scrollTo(0,0);
+}
+function detailEdit(){ document.getElementById('detailTab').style.display='none'; startEdit(detailRow); }
+function detailClose(){ showTab('history'); }
+function detailDelete(){
+  if(!confirm('Delete this entry?')) return;
+  const b=document.getElementById('dDelBtn'); b.disabled=true; b.innerText='...';
+  google.script.run.withSuccessHandler(()=>{
+    b.disabled=false; b.innerText='🗑️';
+    loadEntryBalances(); showTab('history');
+  }).withFailureHandler(()=>{
+    b.disabled=false; b.innerText='🗑️';
+    alert('Could not delete - check your connection and try again.');
+  }).deleteEntryRow(detailRow.row);
+}
+
+(function initTheme(){
+  const saved=localStorage.getItem('mt_theme');
+  if(saved==='dark'){
+    document.documentElement.setAttribute('data-theme','dark');
+    document.getElementById('themeBtn').innerText='●';
+  }
+})();
+function toggleTheme(){
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  if(isDark){
+    document.documentElement.removeAttribute('data-theme');
+    document.getElementById('themeBtn').innerText='●';
+    localStorage.setItem('mt_theme','light');
+  }else{
+    document.documentElement.setAttribute('data-theme','dark');
+    document.getElementById('themeBtn').innerText='●';
+    localStorage.setItem('mt_theme','dark');
+  }
+}
+let openingBalancesCache={};
+
+function loadEntryBalances(){
+  google.script.run.withSuccessHandler(bal=>{
+    let html='';
+    Object.keys(bal).forEach(a=>{
+      const v=bal[a];
+      html+='<div class="sumItem" style="cursor:pointer" onclick="goToAccountHistory(\''+a+'\')"><div class="lbl">'+a+'</div><div class="val" style="color:'+(v<0?'#e57373':'var(--accent)')+'">₹'+v.toFixed(0)+'</div></div>';
+    });
+    document.getElementById('entryBalances').innerHTML=html;
+  }).getBalancesOnly();
+}
+function goToAccountHistory(account){
+  document.getElementById('searchField').value='account';
+  onSearchFieldChange();
+  document.getElementById('searchAccountSel').value=account;
+  showTab('history');
+}
+loadEntryBalances();
+// convert any due auto-pays (if balance is enough) as soon as the app opens
+google.script.run.withSuccessHandler(()=>{ loadEntryBalances(); }).processAutopays();
+document.getElementById('date').valueAsDate=new Date();
+const now=new Date();
+const curMonthStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+document.getElementById('monthPick').value=curMonthStr;
+document.getElementById('histMonth').value=curMonthStr;
+(function initYears(){
+  const cy=new Date().getFullYear();
+  let opts='';
+  for(let y=cy+1;y>=cy-5;y--){ opts+='<option value="'+y+'"'+(y===cy?' selected':'')+'>'+y+'</option>'; }
+  document.getElementById('histYear').innerHTML=opts;
+})();
+updatePendingBadge();
+if(navigator.onLine) syncPending();
+
+google.script.run.withSuccessHandler(l=>{
+  fill('account',l.fromList); fill('from',l.fromList); fill('to',l.fromList); fill('for',l.forList);
+  fill('budCat',l.forList); fill('apAccount',l.fromList); fill('searchAccountSel',l.fromList);
+  checkHDFCLive();
+}).getLists();
+
+function refreshAllLists(){
+  google.script.run.withSuccessHandler(l=>{
+    fill('account',l.fromList); fill('from',l.fromList); fill('to',l.fromList); fill('for',l.forList);
+    fill('budCat',l.forList); fill('apAccount',l.fromList); fill('searchAccountSel',l.fromList);
+    renderAcctList(l.fromList);
+    renderCatMgmtList(l.forList);
+  }).getLists();
+}
+function renderAcctList(arr){
+  if(!arr.length){document.getElementById('acctList').innerHTML='<p style="font-size:13px;color:#666">No accounts yet.</p>';return;}
+  let html='';
+  arr.forEach(a=>{
+    html+='<div class="apRow"><span>'+a+'</span><button class="del" title="Remove" onclick="removeAcctUI(\''+a+'\')">🗑️</button></div>';
+  });
+  document.getElementById('acctList').innerHTML=html;
+}
+function renderCatMgmtList(arr){
+  if(!arr.length){document.getElementById('catMgmtList').innerHTML='<p style="font-size:13px;color:#666">No categories yet.</p>';return;}
+  let html='';
+  arr.forEach(c=>{
+    html+='<div class="apRow"><span>'+c+'</span><button class="del" title="Remove" onclick="removeCatUI(\''+c+'\')">🗑️</button></div>';
+  });
+  document.getElementById('catMgmtList').innerHTML=html;
+}
+function addAcctUI(){
+  const name=document.getElementById('newAcct').value.trim();
+  if(!name){alert('Enter an account name');return;}
+  google.script.run.withSuccessHandler(m=>{
+    document.getElementById('newAcct').value='';
+    refreshAllLists();
+  }).addAccount(name);
+}
+function removeAcctUI(name){
+  if(!confirm('Remove "'+name+'" from account list? Past entries keep showing it, but it won\'t appear in dropdowns anymore.')) return;
+  google.script.run.withSuccessHandler(()=>{ refreshAllLists(); }).removeAccount(name);
+}
+function addCatUI(){
+  const name=document.getElementById('newCat').value.trim();
+  if(!name){alert('Enter a category name');return;}
+  google.script.run.withSuccessHandler(m=>{
+    document.getElementById('newCat').value='';
+    refreshAllLists();
+  }).addCategory(name);
+}
+function removeCatUI(name){
+  if(!confirm('Remove "'+name+'" from category list? Past entries keep showing it, but it won\'t appear in dropdowns anymore.')) return;
+  google.script.run.withSuccessHandler(()=>{ refreshAllLists(); }).removeCategory(name);
+}
+
+function fill(id,arr){
+  document.getElementById(id).innerHTML='<option value="">Select</option>'+arr.map(x=>'<option>'+x+'</option>').join('');
+}
+function applyQuickAmt(){
+  const sel=document.getElementById('quickAmtSel');
+  if(sel.value) document.getElementById('amount').value=sel.value;
+  sel.value='';
+}
+function toggleType(){
+  const type=document.getElementById('type').value;
+  const isTransfer = type==='TRANSFER';
+  const isIncome = type==='INCOME';
+  document.getElementById('transferRow').style.display = isTransfer?'flex':'none';
+  document.getElementById('accountForRow').style.display = isTransfer?'none':'flex';
+  document.getElementById('accountLabel').innerText = isIncome?'TO':'FROM';
+  document.getElementById('forLabel').innerText = isIncome?'SOURCE':'FOR';
+}
+function save(){
+  const g=id=>document.getElementById(id).value;
+  if(!g('date')||!g('amount')){alert('Fill DATE and AMOUNT');return;}
+  const b=document.getElementById('btn'); b.disabled=true;
+  const data={date:g('date'),amount:g('amount'),type:g('type'),account:g('account'),from:g('from'),to:g('to'),for:g('for'),notes:g('notes')};
+  if(editingRow){
+    if(!navigator.onLine){
+      alert('Editing needs internet. Please try again once you\'re back online.');
+      b.disabled=false;
+      return;
+    }
+    google.script.run.withSuccessHandler(m=>{
+      document.getElementById('msg').innerText=m; b.disabled=false;
+      cancelEdit();
+      loadEntryBalances();
+    }).withFailureHandler(err=>{
+      alert('Could not save the update — check your connection and try again.');
+      b.disabled=false;
+    }).updateEntryRow(editingRow, data);
+  }else{
+    if(!navigator.onLine){
+      queueOffline(data);
+      document.getElementById('msg').innerText='No internet — saved offline. Will sync automatically when back online.';
+      b.disabled=false;
+      ['amount','notes'].forEach(i=>document.getElementById(i).value='');
+      document.getElementById('account').value=''; document.getElementById('from').value='';
+      document.getElementById('for').value=''; document.getElementById('to').value='';
+      return;
+    }
+    google.script.run.withSuccessHandler(m=>{
+      document.getElementById('msg').innerText=m; b.disabled=false;
+      ['amount','notes'].forEach(i=>document.getElementById(i).value='');
+      document.getElementById('account').value=''; document.getElementById('from').value='';
+      document.getElementById('for').value=''; document.getElementById('to').value='';
+      loadEntryBalances();
+    }).withFailureHandler(err=>{
+      queueOffline(data);
+      document.getElementById('msg').innerText='Connection issue — saved offline. Will sync automatically.';
+      b.disabled=false;
+      ['amount','notes'].forEach(i=>document.getElementById(i).value='');
+      document.getElementById('account').value=''; document.getElementById('from').value='';
+      document.getElementById('for').value=''; document.getElementById('to').value='';
+    }).saveEntry(data);
+  }
+}
+function queueOffline(data){
+  const key='mt_pending_entries';
+  const arr=JSON.parse(localStorage.getItem(key)||'[]');
+  arr.push(data);
+  localStorage.setItem(key, JSON.stringify(arr));
+  updatePendingBadge();
+}
+function updatePendingBadge(){
+  const arr=JSON.parse(localStorage.getItem('mt_pending_entries')||'[]');
+  const badge=document.getElementById('pendingBadge');
+  if(arr.length){
+    badge.style.display='block';
+    badge.innerText='⏳ '+arr.length+' entr'+(arr.length>1?'ies':'y')+' waiting — tap to sync';
+  }else{
+    badge.style.display='none';
+  }
+}
+function syncPending(){
+  const arr=JSON.parse(localStorage.getItem('mt_pending_entries')||'[]');
+  if(!arr.length) return;
+  if(!navigator.onLine){ return; }
+  const next=arr[0];
+  google.script.run.withSuccessHandler(()=>{
+    const remaining=JSON.parse(localStorage.getItem('mt_pending_entries')||'[]');
+    remaining.shift();
+    localStorage.setItem('mt_pending_entries', JSON.stringify(remaining));
+    updatePendingBadge();
+    loadEntryBalances();
+    if(remaining.length) syncPending();
+    else document.getElementById('msg').innerText='All offline entries synced.';
+  }).withFailureHandler(()=>{
+    // still offline or a real error — leave queue intact, try again later
+  }).saveEntry(next);
+}
+window.addEventListener('online', syncPending);
+function cancelEdit(){
+  editingRow=null;
+  document.getElementById('editBanner').style.display='none';
+  document.getElementById('cancelEdit').style.display='none';
+  document.getElementById('btn').innerText='SUBMIT';
+  document.getElementById('msg').innerText='';
+  ['amount','notes'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('type').value='EXPENSE'; toggleType();
+  document.getElementById('date').valueAsDate=new Date();
+}
+
+function showTab(name){
+  document.getElementById('detailTab').style.display='none';
+  document.getElementById('entryTab').style.display = name==='entry'?'block':'none';
+  document.getElementById('historyTab').style.display = name==='history'?'block':'none';
+  document.getElementById('summaryTab').style.display = name==='summary'?'block':'none';
+  document.getElementById('tabEntryBtn').classList.toggle('active', name==='entry');
+  document.getElementById('tabHistoryBtn').classList.toggle('active', name==='history');
+  document.getElementById('tabSummaryBtn').classList.toggle('active', name==='summary');
+  if(name==='history') loadHistory();
+  if(name==='summary'){ loadAutopays(); loadOpeningBalances(); refreshAllLists(); }
+}
+let currentFilteredRows=[];
+
+function todayISO(){
+  const t=new Date();
+  return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+}
+function toDDMMYYYY(iso){
+  const [y,m,d]=iso.split('-');
+  return d+'-'+m+'-'+y;
+}
+function onViewModeChange(){
+  const m=document.getElementById('viewMode').value;
+  document.getElementById('histMonth').style.display = m==='month'?'block':'none';
+  document.getElementById('dateFilter').style.display = m==='date'?'block':'none';
+  document.getElementById('histYear').style.display = m==='year'?'block':'none';
+  document.getElementById('viewValueLabel').innerText = m==='month'?'MONTH':(m==='date'?'DATE':'YEAR');
+  if(m==='date' && !document.getElementById('dateFilter').value){
+    document.getElementById('dateFilter').value=todayISO();
+  }
+  loadHistory();
+}
+function onSearchFieldChange(){
+  const f=document.getElementById('searchField').value;
+  const box=document.getElementById('searchBox');
+  const sel=document.getElementById('searchAccountSel');
+  box.value=''; sel.value='';
+  if(f==='account'){
+    box.style.display='none';
+    sel.style.display='block';
+  }else{
+    sel.style.display='none';
+    box.style.display='block';
+    if(f==='for'){ box.disabled=false; box.placeholder='Search FOR / category'; }
+    else if(f==='notes'){ box.disabled=false; box.placeholder='Search notes'; }
+    else { box.disabled=true; box.placeholder='Pick a field first'; }
+  }
+  renderHistory();
+}
+function loadHistory(){
+  document.getElementById('histBox').innerText='Loading...';
+  const mode=document.getElementById('viewMode').value;
+  const done=rows=>{ currentRows=rows; renderHistory(); };
+  if(mode==='year'){
+    google.script.run.withSuccessHandler(done).getEntriesForYear(document.getElementById('histYear').value);
+  }else if(mode==='date'){
+    const d=document.getElementById('dateFilter').value;
+    if(!d){ currentRows=[]; renderHistory(); return; }
+    google.script.run.withSuccessHandler(done).getEntriesForMonth(d.slice(0,7));
+  }else{
+    google.script.run.withSuccessHandler(done).getEntriesForMonth(document.getElementById('histMonth').value);
+  }
+}
+function renderHistory(){
+  const mode=document.getElementById('viewMode').value;
+  const typeF=document.getElementById('typeFilter').value;
+  const field=document.getElementById('searchField').value;
+  const text=document.getElementById('searchBox').value.toLowerCase().trim();
+  const acc=document.getElementById('searchAccountSel').value;
+  let rows=currentRows;
+
+  if(mode==='date'){
+    const d=document.getElementById('dateFilter').value;
+    if(d) rows=rows.filter(r=>r.date===toDDMMYYYY(d));
+  }
+  if(typeF) rows=rows.filter(r=>r.type===typeF);
+  if(field==='account' && acc){
+    rows=rows.filter(r=>String(r.from)===acc || String(r.for)==='TO: '+acc);
+  }else if(field==='for' && text){
+    rows=rows.filter(r=>String(r.for).toLowerCase().includes(text));
+  }else if(field==='notes' && text){
+    rows=rows.filter(r=>String(r.notes||'').toLowerCase().includes(text));
+  }
+  currentFilteredRows=rows;
+
+  let totalExp=0, totalInc=0, totalTrf=0;
+  rows.forEach(r=>{
+    const amt=Number(r.amount)||0;
+    if(r.type==='EXPENSE') totalExp+=amt;
+    else if(r.type==='INCOME') totalInc+=amt;
+    else if(r.type==='TRANSFER') totalTrf+=amt;
+  });
+  document.getElementById('histTotals').innerHTML =
+    '<div class="sumItem"><div class="lbl">Expense</div><div class="val" style="color:#c0392b">₹'+totalExp.toFixed(0)+'</div></div>'+
+    '<div class="sumItem"><div class="lbl">Income</div><div class="val" style="color:#27ae60">₹'+totalInc.toFixed(0)+'</div></div>'+
+    '<div class="sumItem"><div class="lbl">Transfer</div><div class="val" style="color:#2980b9">₹'+totalTrf.toFixed(0)+'</div></div>';
+
+  if(!rows.length){document.getElementById('histBox').innerHTML='<p>No entries match.</p>';return;}
+  let html='<table><tr><th>SR</th><th>Date</th><th>Amt</th><th>Acc</th><th>For</th><th></th></tr>';
+  rows.forEach(r=>{
+    const cls = r.type==='TRANSFER'?'trf':(r.type==='INCOME'?'inc':'exp');
+    html+='<tr class="histRow '+cls+'" onclick="openEntry(\''+r.sr+'\')"><td>'+r.sr+'</td><td>'+r.date+'</td><td>'+r.amount+'</td><td>'+r.from+'</td><td>'+r.for+'</td>'
+        +'<td style="white-space:nowrap"><button class="editbtn" title="Edit" onclick=\'event.stopPropagation();startEdit('+JSON.stringify(r)+')\'>✏️</button>'
+        +'<button class="delbtn" title="Delete" onclick="event.stopPropagation();delRow('+r.row+',this)">🗑️</button></td></tr>';
+  });
+  html+='</table>';
+  document.getElementById('histBox').innerHTML=html;
+}
+function delRow(rowNum, btn){
+  if(!confirm('Delete this entry?')) return;
+  btn.disabled=true; btn.innerText='...';
+  google.script.run.withSuccessHandler(()=>{ loadHistory(); loadEntryBalances(); }).deleteEntryRow(rowNum);
+}
+function startEdit(r){
+  editingRow=r.row;
+  document.getElementById('editSr').innerText=r.sr;
+  document.getElementById('editBanner').style.display='block';
+  document.getElementById('cancelEdit').style.display='block';
+  document.getElementById('btn').innerText='UPDATE';
+
+  const [dd,mm,yyyy]=r.date.split('-');
+  document.getElementById('date').value=yyyy+'-'+mm+'-'+dd;
+  document.getElementById('amount').value=r.amount;
+  document.getElementById('notes').value=r.notes||'';
+  document.getElementById('type').value=r.type;
+  toggleType();
+  if(r.type==='TRANSFER'){
+    document.getElementById('from').value=r.from;
+    document.getElementById('to').value=r.for.startsWith('TO: ')?r.for.slice(4):'';
+  }else if(r.type==='INCOME'){
+    document.getElementById('account').value=r.from;
+    document.getElementById('for').value=r.for.startsWith('SOURCE: ')?r.for.slice(8):'';
+  }else{
+    document.getElementById('account').value=r.from;
+    document.getElementById('for').value=r.for;
+  }
+  showTab('entry');
+}
+function exportCSV(){
+  const rows=currentFilteredRows.slice().reverse();
+  if(!rows.length){ alert('No entries to export.'); return; }
+  const esc=x=>'"'+String(x==null?'':x).replace(/"/g,'""')+'"';
+  let csv='SR,DATE,AMOUNT,ACCOUNT,FOR,NOTES,TYPE\n';
+  rows.forEach(r=>{
+    csv+=[r.sr,r.date,r.amount,r.from,r.for,r.notes||'',r.type].map(esc).join(',')+'\n';
+  });
+  const mode=document.getElementById('viewMode').value;
+  const tag = mode==='year' ? document.getElementById('histYear').value
+            : (mode==='date' ? document.getElementById('dateFilter').value
+            : document.getElementById('histMonth').value);
+  const uri='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  const a=document.createElement('a');
+  a.href=uri; a.download='MoneyTracker_'+tag+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function loadSummary(){
+  const month=document.getElementById('monthPick').value;
+  document.getElementById('catBox').innerText='Loading...';
+  document.getElementById('balBox').innerHTML='';
+  document.getElementById('sumBox').innerHTML='';
+  google.script.run.withSuccessHandler(s=>{
+    let balHtml='';
+    Object.keys(s.balances).forEach(acc=>{
+      const v=s.balances[acc];
+      balHtml+='<div class="balCard"><span>'+acc+'</span><b class="'+(v<0?'negBal':'')+'">₹'+v.toFixed(2)+'</b></div>';
+    });
+    document.getElementById('balBox').innerHTML=balHtml;
+    const netTotal=Object.values(s.balances).reduce((a,b)=>a+b,0);
+    document.getElementById('sumMonthTotal').innerText='₹'+netTotal.toFixed(0);
+
+    document.getElementById('sumBox').innerHTML=
+      '<div class="sumItem"><div class="lbl">Spent</div><div class="val" style="color:#c0392b">₹'+s.expenseTotal.toFixed(0)+'</div></div>'+
+      '<div class="sumItem"><div class="lbl">Income</div><div class="val" style="color:#27ae60">₹'+s.incomeTotal.toFixed(0)+'</div></div>'+
+      '<div class="sumItem"><div class="lbl">Transferred</div><div class="val" style="color:#2980b9">₹'+s.transferTotal.toFixed(0)+'</div></div>';
+
+    const overIncome = s.totalBudgeted>s.incomeTotal && s.incomeTotal>0;
+    document.getElementById('sumBudgetTotal').innerText='₹'+s.totalBudgeted.toFixed(0);
+    document.getElementById('totalBudgetBox').innerHTML=
+      '<div class="lbl">Total Budgeted (all categories)</div>'+
+      '<div class="val" style="color:'+(overIncome?'#e57373':'var(--accent)')+'">₹'+s.totalBudgeted.toFixed(0)+
+      (s.incomeTotal>0 ? (' / ₹'+s.incomeTotal.toFixed(0)+' income'+(overIncome?' ⚠ Over income':'')) : '')+'</div>';
+
+    if(!s.categories.length){
+      document.getElementById('catBox').innerText='No categories yet.';
+    }else{
+      let html='';
+      s.categories.forEach(c=>{
+        if(c.limit>0){
+          const pct=Math.min(100,(c.total/c.limit)*100);
+          const over=c.total>c.limit;
+          html+='<div class="budRow'+(over?' budOver':'')+'"><span>'+c.name+'</span><span>₹'+c.total.toFixed(0)+' / ₹'+c.limit.toFixed(0)+(over?' ⚠':'')
+              +' <button class="editbtn" title="Edit budget" onclick="editBudgetInline(\''+c.name+'\','+c.limit+')">✏️</button></span></div>'
+              +'<div class="budBar'+(over?' budOver':'')+'"><div class="budFill" style="width:'+pct+'%"></div></div>';
+        }else{
+          html+='<div class="budRow"><span>'+c.name+'</span><span>₹'+c.total.toFixed(2)
+              +' <button class="editbtn" title="Set budget" onclick="editBudgetInline(\''+c.name+'\',0)">✏️</button></span></div>';
+        }
+      });
+      document.getElementById('catBox').innerHTML=html;
+    }
+  }).getSummary(month);
+  loadAutopaySummary();
+}
+function editBudgetInline(category, currentLimit){
+  const val=prompt('Set monthly budget for '+category, currentLimit||'');
+  if(val===null) return;
+  const num=Number(val);
+  if(isNaN(num)||num<0){alert('Enter a valid number');return;}
+  google.script.run.withSuccessHandler(()=>{ loadSummary(); }).saveBudget(category, num);
+}
+function setBudget(){
+  const cat=document.getElementById('budCat').value;
+  const limit=document.getElementById('budLimit').value;
+  if(!cat||!limit){alert('Pick a category and enter a limit');return;}
+  google.script.run.withSuccessHandler(()=>{
+    document.getElementById('budLimit').value='';
+    loadSummary();
+  }).saveBudget(cat, Number(limit));
+}
+function setOpeningBalanceInline(account, btn){
+  const row=btn.closest('.obEditRow');
+  const amt=row.querySelector('input').value;
+  if(amt===''){alert('Enter an amount');return;}
+  btn.disabled=true; btn.innerText='...';
+  google.script.run.withSuccessHandler(()=>{
+    btn.disabled=false; btn.innerText='Save';
+    loadOpeningBalances();
+    loadSummary();
+  }).saveOpeningBalance(account, Number(amt));
+}
+function loadOpeningBalances(){
+  google.script.run.withSuccessHandler(rows=>{
+    const total=rows.reduce((s,r)=>s+(Number(r.amount)||0),0);
+    document.getElementById('sumOpeningTotal').innerText='₹'+total.toFixed(0);
+    if(!rows.length){document.getElementById('obList').innerHTML='<p style="font-size:13px;color:#666">No accounts found.</p>';return;}
+    let html='';
+    rows.forEach(r=>{
+      html+='<div class="obEditRow" style="display:flex;gap:6px;align-items:center;margin-top:6px">'
+          +'<span style="flex:1;font-size:13px;font-weight:bold">'+r.account+'</span>'
+          +'<input type="number" value="'+r.amount+'" style="flex:1;margin-top:0;padding:8px">'
+          +'<button class="smallbtn" style="margin-top:0" onclick="setOpeningBalanceInline(\''+r.account+'\',this)">Save</button>'
+          +'</div>';
+    });
+    document.getElementById('obList').innerHTML=html;
+  }).getOpeningBalances();
+}
+function loadAutopays(){
+  document.getElementById('apList').innerHTML='Checking...';
+  google.script.run.withSuccessHandler(rows=>{
+    const total=rows.reduce((s,r)=>s+(Number(r.amount)||0),0);
+    document.getElementById('sumAutopayTotal').innerText='₹'+total.toFixed(0);
+    if(!rows.length){document.getElementById('apList').innerHTML='<p style="font-size:13px;color:#666">No pending auto-pay.</p>';}
+    else{
+      let html='';
+      rows.forEach(r=>{
+        const unpaid=r.status==='UNPAID';
+        const due=unpaid?'<span class="apDue">Due '+r.dueDateDisplay+'</span>':'Due '+r.dueDateDisplay;
+        const tag=unpaid?'<span class="apDue">✗ Insufficient balance</span>':'Upcoming';
+        html+='<div class="apRow '+(unpaid?'apUnpaid':'')+'"><span>'+r.account+' — '+r.label+' ('+due+') · '+tag+'</span>'
+            +'<span style="white-space:nowrap">₹'+r.amount+' '
+            +'<button class="editbtn" title="Edit" onclick=\'startEditAutopay('+JSON.stringify(r)+')\'>✏️</button>'
+            +'<button class="del" title="Delete" onclick="delAutopay('+r.row+')">🗑️</button></span></div>';
+      });
+      document.getElementById('apList').innerHTML=html;
+    }
+    // auto-pays that were converted into entries change balances/history
+    loadEntryBalances();
+    loadSummary();
+  }).processAutopays();
+}
+let editingAutopayRow=null;
+function startEditAutopay(r){
+  editingAutopayRow=r.row;
+  document.getElementById('apAccount').value=r.account;
+  document.getElementById('apLabel').value=r.label;
+  document.getElementById('apDate').value=r.dueDateISO;
+  document.getElementById('apAmount').value=r.amount;
+  const btn=document.querySelector('[onclick="addAutopay()"]');
+  if(btn) btn.innerText='Update Auto-Pay';
+}
+function cancelAutopayEdit(){
+  editingAutopayRow=null;
+  document.getElementById('apLabel').value='';
+  document.getElementById('apDate').value='';
+  document.getElementById('apAmount').value='';
+  const btn=document.querySelector('[onclick="addAutopay()"]');
+  if(btn) btn.innerText='Add Auto-Pay';
+}
+function addAutopay(){
+  const acc=document.getElementById('apAccount').value;
+  const label=document.getElementById('apLabel').value;
+  const dateVal=document.getElementById('apDate').value;
+  const amount=document.getElementById('apAmount').value;
+  if(!acc||!label||!dateVal||!amount){alert('Fill all auto-pay fields');return;}
+  const day=Number(dateVal.split('-')[2]);
+  const startMonth=dateVal.slice(0,7);
+  if(editingAutopayRow){
+    google.script.run.withSuccessHandler(()=>{
+      cancelAutopayEdit();
+      loadAutopays();
+      loadAutopaySummary();
+    }).updateAutopay(editingAutopayRow, acc, label, day, Number(amount), startMonth);
+  }else{
+    google.script.run.withSuccessHandler(()=>{
+      document.getElementById('apLabel').value='';
+      document.getElementById('apDate').value='';
+      document.getElementById('apAmount').value='';
+      loadAutopays();
+      loadAutopaySummary();
+    }).saveAutopay(acc,label,day,Number(amount),startMonth);
+  }
+}
+function getDestAccount(){
+  const type=document.getElementById('type').value;
+  if(type==='INCOME') return document.getElementById('account').value;
+  if(type==='TRANSFER') return document.getElementById('to').value;
+  return '';
+}
+function checkHDFCLive(){
+  const dest=getDestAccount();
+  const noteEl=document.getElementById('hdfcNote');
+  if(dest!=='HDFC'){ noteEl.style.display='none'; return; }
+  const dateVal=document.getElementById('date').value;
+  if(!dateVal){ noteEl.style.display='none'; return; }
+  const month=dateVal.slice(0,7);
+  google.script.run.withSuccessHandler(s=>{
+    noteEl.style.display='block';
+    const cls = s.remaining<=0?'checkBad':(s.remaining<=s.limit*0.2?'checkWarn':'checkOk');
+    noteEl.className='checkCard '+cls;
+    noteEl.innerText='HDFC deposited so far this month: ₹'+s.total.toFixed(0)+' / ₹'+s.limit+'. Remaining room: ₹'+s.remaining.toFixed(0);
+  }).getHDFCStatus(month);
+}
+function delAutopay(rowNum){
+  if(!confirm('Remove this auto-pay?')) return;
+  google.script.run.withSuccessHandler(()=>{ loadAutopays(); loadAutopaySummary(); }).deleteAutopay(rowNum);
+}
+function loadAutopaySummary(){
+  const month=document.getElementById('monthPick').value;
+  document.getElementById('checkBox').innerText='Loading...';
+  google.script.run.withSuccessHandler(s=>{
+    let html='';
+    if(!s.accounts.length){
+      html='<p style="font-size:13px;color:#666">Add an auto-pay above to see balance checks.</p>';
+    }else{
+      s.accounts.forEach(a=>{
+        if(a.deficit>0){
+          html+='<div class="checkCard checkBad">'+a.account+': Scheduled ₹'+a.scheduled.toFixed(0)+', Balance ₹'+a.balance.toFixed(0)
+              +'. Deposit ₹'+a.deficit.toFixed(0)+' more to cover dues.</div>';
+        }else{
+          html+='<div class="checkCard checkOk">'+a.account+': Scheduled ₹'+a.scheduled.toFixed(0)+', Balance ₹'+a.balance.toFixed(0)+'. Sufficient ✓</div>';
+        }
+      });
+    }
+    const h=s.hdfc;
+    const hdfcOver = h.total>h.limit;
+    const hdfcNear = !hdfcOver && h.remaining<=h.limit*0.2;
+    const pct=Math.min(100, (h.total/h.limit)*100);
+    html+='<div class="budRow'+(hdfcOver?' budOver':'')+'"><span>HDFC deposits (income+transfer)</span><span>₹'+h.total.toFixed(0)+' / ₹'+h.limit
+        +(hdfcOver?' ⚠ Over limit':(hdfcNear?' ⚠ Remaining ₹'+h.remaining.toFixed(0):' · Remaining ₹'+h.remaining.toFixed(0)))+'</span></div>'
+        +'<div class="budBar'+(hdfcOver?' budOver':'')+'"><div class="budFill" style="width:'+pct+'%;'+(hdfcNear&&!hdfcOver?'background:#e6a700':'')+'"></div></div>';
+    document.getElementById('checkBox').innerHTML=html;
+  }).getAutopaySummary(month);
+}
+
+// Open History directly when URL has ?tab=history (used by the detail page Close button)
+google.script.url.getLocation(function(loc){
+  if(loc && loc.parameter && loc.parameter.tab==='history') showTab('history');
+});
+// Refresh History when you come back to this tab
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden && document.getElementById('historyTab').style.display!=='none') loadHistory();
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+</script></body></html>
