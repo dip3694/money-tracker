@@ -342,15 +342,30 @@ function saveSetup(){
   const m=document.getElementById('setupMsg');
   if(!/^https:\/\/script\.google\.com\/.*\/exec/.test(u)){ m.innerText='Enter the full web app URL ending in /exec'; return; }
   if(!k){ m.innerText='Enter the secret key'; return; }
-  localStorage.setItem('mt_url',u); localStorage.setItem('mt_key',k);
+  localStorage.removeItem('mt_ok'); localStorage.setItem('mt_url',u); localStorage.setItem('mt_key',k);
   location.reload();
 }
+// Only read-type calls are retried (retrying a save could create a duplicate entry)
+const READ_FNS=new Set(['getLists','getHDFCStatus','getEntriesForMonth','getEntriesForYear','getEntryBySr','getOpeningBalances','getBalancesOnly','getSummary','getAutopays','processAutopays','getAutopaySummary']);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function callApi(fn,args){
   if(!CFG.url||!CFG.key){ showSetup(); throw new Error('not configured'); }
-  const res=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:CFG.key,fn:fn,args:args})});
-  let data;
-  try{ data=await res.json(); }
-  catch(e){ showSetup('Cannot read the server reply. Check the URL and that access is set to Anyone.'); throw e; }
+  const tries=READ_FNS.has(fn)?3:1;
+  let data=null, lastErr=null;
+  for(let i=0;i<tries;i++){
+    if(i) await sleep(1200*i);
+    try{
+      const res=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:CFG.key,fn:fn,args:args})});
+      data=await res.json();
+      break;
+    }catch(e){ lastErr=e; data=null; }
+  }
+  if(!data){
+    // Temporary Google/network hiccup: do NOT send the user to Setup once the app has worked before
+    if(!localStorage.getItem('mt_ok') && navigator.onLine) showSetup('Cannot read the server reply. Check the URL and that access is set to Anyone.');
+    throw lastErr||new Error('no reply');
+  }
+  localStorage.setItem('mt_ok','1');
   if(!data.ok){
     if(data.error==='unauthorized') showSetup('Wrong secret key. Enter it again.');
     throw new Error(data.error);
