@@ -1,0 +1,134 @@
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      host:
+        description: 'Your site address WITHOUT https://  (example: dip3694.github.io)'
+        required: true
+        default: 'dip3694.github.io'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.5'
+
+      - name: Create the Android project
+        env:
+          HOST: ${{ inputs.host }}
+        run: |
+          set -e
+          PKG=app.moneytracker.twa
+          mkdir -p twa/app/src/main/res/values twa/app/src/main/res/mipmap-xxxhdpi
+          cp icon-512.png twa/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+
+          cat > twa/settings.gradle <<'EOT'
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+          rootProject.name = 'MoneyTracker'
+          include ':app'
+          EOT
+
+          cat > twa/build.gradle <<'EOT'
+          plugins { id 'com.android.application' version '8.1.4' apply false }
+          EOT
+
+          printf 'android.useAndroidX=true\norg.gradle.jvmargs=-Xmx2g\n' > twa/gradle.properties
+
+          cat > twa/app/build.gradle <<'EOT'
+          plugins { id 'com.android.application' }
+          android {
+            namespace 'app.moneytracker.twa'
+            compileSdk 34
+            defaultConfig {
+              applicationId 'app.moneytracker.twa'
+              minSdk 21
+              targetSdk 34
+              versionCode 1
+              versionName '1.0'
+              manifestPlaceholders = [hostName: HOST]
+            }
+            signingConfigs {
+              release {
+                storeFile file('release.keystore')
+                storePassword 'moneytracker'
+                keyAlias 'key0'
+                keyPassword 'moneytracker'
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+                minifyEnabled false
+              }
+            }
+            lint { checkReleaseBuilds false }
+          }
+          dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0' }
+          EOT
+
+          cat > twa/app/src/main/AndroidManifest.xml <<'EOT'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <application android:label="Money Tracker" android:icon="@mipmap/ic_launcher" android:allowBackup="true">
+              <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
+              <activity android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+                  android:exported="true" android:label="Money Tracker"
+                  android:theme="@android:style/Theme.Translucent.NoTitleBar">
+                <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="https://${hostName}/" />
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN" />
+                  <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+                <intent-filter android:autoVerify="true">
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="https" android:host="${hostName}" />
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          EOT
+
+          cat > twa/app/src/main/res/values/strings.xml <<EOT
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+            <string name="asset_statements">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://$HOST\"}}]</string>
+          </resources>
+          EOT
+
+      - name: Make signing key
+        run: |
+          keytool -genkeypair -keystore twa/app/release.keystore -alias key0 \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass moneytracker -keypass moneytracker -dname "CN=Money Tracker"
+
+      - name: Build
+        working-directory: twa
+        run: gradle assembleRelease -PHOST=${{ inputs.host }} --no-daemon
+
+      - name: Collect APK and assetlinks.json
+        run: |
+          mkdir out
+          cp twa/app/build/outputs/apk/release/app-release.apk out/MoneyTracker.apk
+          FP=$(keytool -list -v -keystore twa/app/release.keystore -storepass moneytracker | grep 'SHA256:' | head -1 | sed 's/.*SHA256: *//')
+          printf '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"app.moneytracker.twa","sha256_cert_fingerprints":["%s"]}}]\n' "$FP" > out/assetlinks.json
+          cat out/assetlinks.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MoneyTracker-APK
+          path: out/
