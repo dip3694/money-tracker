@@ -355,7 +355,10 @@ async function callApi(fn,args){
   for(let i=0;i<tries;i++){
     if(i) await sleep(1200*i);
     try{
-      const res=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:CFG.key,fn:fn,args:args})});
+      const ctl=new AbortController();
+const to=setTimeout(()=>ctl.abort(),20000);
+const res=await fetch(CFG.url,{method:'POST',signal:ctl.signal,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:CFG.key,fn:fn,args:args})});
+clearTimeout(to);
       data=await res.json();
       break;
     }catch(e){ lastErr=e; data=null; }
@@ -474,7 +477,11 @@ function goToAccountHistory(account){
 }
 loadEntryBalances();
 // convert any due auto-pays (if balance is enough) as soon as the app opens
-google.script.run.withSuccessHandler(()=>{ loadEntryBalances(); }).processAutopays();
+const apDay=todayISO();
+if(localStorage.getItem('mt_ap_day')!==apDay){
+  localStorage.setItem('mt_ap_day',apDay);
+  google.script.run.withSuccessHandler(()=>{ loadEntryBalances(); }).processAutopays();
+}
 document.getElementById('date').valueAsDate=new Date();
 const now=new Date();
 const curMonthStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
@@ -489,10 +496,14 @@ document.getElementById('histMonth').value=curMonthStr;
 updatePendingBadge();
 if(navigator.onLine) syncPending();
 
-google.script.run.withSuccessHandler(l=>{
+const applyLists=l=>{
   fill('account',l.fromList); fill('from',l.fromList); fill('to',l.fromList); fill('for',l.forList);
   fill('budCat',l.forList); fill('apAccount',l.fromList); fill('searchAccountSel',l.fromList);
-  checkHDFCLive();
+};
+try{ const c=localStorage.getItem('mt_lists'); if(c) applyLists(JSON.parse(c)); }catch(e){}
+google.script.run.withSuccessHandler(l=>{
+  localStorage.setItem('mt_lists',JSON.stringify(l));
+  applyLists(l); checkHDFCLive();
 }).getLists();
 
 function refreshAllLists(){
@@ -566,6 +577,7 @@ function save(){
   if(!g('date')||!g('amount')){alert('Fill DATE and AMOUNT');return;}
   const b=document.getElementById('btn'); b.disabled=true;
   const data={date:g('date'),amount:g('amount'),type:g('type'),account:g('account'),from:g('from'),to:g('to'),for:g('for'),notes:g('notes')};
+data.id=Date.now()+'-'+Math.random().toString(36).slice(2,8);
   if(editingRow){
     if(!navigator.onLine){
       alert('Editing needs internet. Please try again once you\'re back online.');
@@ -598,6 +610,7 @@ function save(){
       loadEntryBalances();
     }).withFailureHandler(err=>{
       queueOffline(data);
+      setTimeout(syncPending,8000);
       document.getElementById('msg').innerText='Connection issue — saved offline. Will sync automatically.';
       b.disabled=false;
       ['amount','notes'].forEach(i=>document.getElementById(i).value='');
@@ -623,22 +636,21 @@ function updatePendingBadge(){
     badge.style.display='none';
   }
 }
-function syncPending(){
-  const arr=JSON.parse(localStorage.getItem('mt_pending_entries')||'[]');
-  if(!arr.length) return;
-  if(!navigator.onLine){ return; }
-  const next=arr[0];
-  google.script.run.withSuccessHandler(()=>{
-    const remaining=JSON.parse(localStorage.getItem('mt_pending_entries')||'[]');
-    remaining.shift();
-    localStorage.setItem('mt_pending_entries', JSON.stringify(remaining));
-    updatePendingBadge();
-    loadEntryBalances();
-    if(remaining.length) syncPending();
-    else document.getElementById('msg').innerText='All offline entries synced.';
-  }).withFailureHandler(()=>{
-    // still offline or a real error — leave queue intact, try again later
-  }).saveEntry(next);
+let syncing=false;
+async function syncPending(){
+  if(syncing||!navigator.onLine) return;
+  syncing=true;
+  try{
+    while(true){
+      const arr=JSON.parse(localStorage.getItem('mt_pending_entries')||'[]');
+      if(!arr.length) break;
+      try{ await callApi('saveEntry',[arr[0]]); }catch(e){ break; }
+      const cur=JSON.parse(localStorage.getItem('mt_pending_entries')||'[]');
+      cur.shift();
+      localStorage.setItem('mt_pending_entries',JSON.stringify(cur));
+      updatePendingBadge();
+    }
+  } finally { syncing=false; loadEntryBalances(); }
 }
 window.addEventListener('online', syncPending);
 function cancelEdit(){
